@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HeshCharacter.h"
+#include "GameFramework/PlayerController.h"
 #include "HeshProjectile.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
@@ -42,14 +43,13 @@ void AHeshCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
-	//Add Input Mapping Context
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
+	PlayerController = Cast<APlayerController>(Controller);
+	if (PlayerController == nullptr) return;
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+	if (Subsystem == nullptr) return;
+
+	Subsystem->AddMappingContext(DefaultMappingContext, 0);
 
 }
 
@@ -60,15 +60,11 @@ void AHeshCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		//Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-
-		//Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AHeshCharacter::Move);
-
-		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHeshCharacter::Look);
+		EnhancedInputComponent->BindAction(ToggleMouseAction, ETriggerEvent::Triggered, this, &AHeshCharacter::ToggleMouse);
 	}
 }
 
@@ -97,6 +93,25 @@ void AHeshCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void AHeshCharacter::ToggleMouse(const FInputActionValue& Value)
+{
+	if (PlayerController == nullptr) return;
+
+	bool bNewMouseState = !PlayerController->bShowMouseCursor;
+	PlayerController->bShowMouseCursor = bNewMouseState;
+	PlayerController->bEnableMouseOverEvents = bNewMouseState;
+    PlayerController->bEnableClickEvents = bNewMouseState;
+
+	// if (NewMouseState)
+	// {
+	// 	PlayerController->SetInputMode(FInputModeGameOnly());
+	// }
+	// else 
+	// {
+	// 	PlayerController->SetInputMode(FInputModeGameAndUI());
+	// }
 }
 
 void AHeshCharacter::SetHasRifle(bool bNewHasRifle)
